@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #10b981;
+  --color-primary-rgb: 16, 185, 129;
+  --color-alert: #ef4444;
+  --color-background: #09090b;
+}
+
+.alert-mode {
+  --color-primary: #ef4444 !important;
+  --color-primary-rgb: 239, 68, 68 !important;
+  --color-alert: #10b981 !important;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-zinc-300 font-mono antialiased overflow-hidden selection:bg-primary selection:text-background transition-colors duration-500;
+  }
+
+  * {
+    @apply rounded-none border-border;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
