@@ -7,18 +7,13 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#09090b',
-        surface: '#18181b',
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
         primary: 'var(--color-primary)',
-        alert: 'var(--color-alert)',
-        border: '#27272a',
       },
       fontFamily: {
-        mono: ['Consolas', 'Monaco', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
-      letterSpacing: {
-        widest: '.25em',
-      }
     },
   },
   plugins: [],

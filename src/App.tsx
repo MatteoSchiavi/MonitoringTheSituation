@@ -1,193 +1,129 @@
-import { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useSwipeable } from 'react-swipeable';
+import SunCalc from 'suncalc';
 import { Header } from './components/layout/Header';
 import { Navigation } from './components/layout/Navigation';
 import { StatusBar } from './components/layout/StatusBar';
 import { AISidebar } from './components/layout/AISidebar';
-import { Overview } from './components/widgets/Overview';
-import { StrategicIntel } from './components/widgets/StrategicIntel';
-import { EnvironmentalIntelligence } from './components/widgets/EnvironmentalIntelligence';
-import { Markets } from './components/widgets/Markets';
-import { F1 } from './components/widgets/F1';
-import { Habitat } from './components/widgets/Habitat';
-import { ExecutiveSummary } from './components/widgets/ExecutiveSummary';
-import { MapTab } from './components/widgets/MapTab';
-import { Maintenance } from './components/widgets/Maintenance';
-import { GlobalNews } from './components/widgets/GlobalNews';
-import { useDashboardData } from './hooks/useDashboard';
-import { cn } from './lib/utils';
-import { getGeminiResponse } from './lib/gemini';
+import { SettingsModal } from './components/layout/SettingsModal';
+import { callGemini } from './lib/api';
 
-// API configuration handled in hooks/useDashboard
+// Lazy-loaded tab components for code-splitting
+const OverviewTab = lazy(() => import('./components/tabs/OverviewTab'));
+const NewsTab = lazy(() => import('./components/tabs/NewsTab'));
+const StocksTab = lazy(() => import('./components/tabs/StocksTab'));
+const IntelTab = lazy(() => import('./components/tabs/IntelTab'));
+const SportsF1Tab = lazy(() => import('./components/tabs/SportsF1Tab'));
+const HomeTab = lazy(() => import('./components/tabs/HomeTab'));
+
+const TAB_ROUTES = ['/overview', '/news', '/stocks', '/intel', '/sports', '/home'];
+
+const LAT = parseFloat(import.meta.env.VITE_LAT || '45.0526');
+const LON = parseFloat(import.meta.env.VITE_LON || '9.693');
+
+function TabLoader() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-3 border-zinc-700 border-t-emerald-500 rounded-full animate-spin" />
+        <p className="text-xs text-zinc-500 font-medium">Loading...</p>
+      </div>
+    </div>
+  );
+}
 
 function App() {
-  const [startTime] = useState(Date.now());
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isAiOpen, setIsAiOpen] = useState(false);
-  const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
-  const [isAlertMode, setIsAlertMode] = useState(false);
-  const [followedStocks, setFollowedStocks] = useState(['SPY', 'QQQ', 'BTCUSD', 'TSLA', 'AAPL', 'NVDA', 'FTSE:MIB']);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [aiInput, setAiInput] = useState('');
   const [aiMessages, setAiMessages] = useState<{ role: string; content: string }[]>([]);
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
 
-  // Sync theme with alert mode
+  // Auto day/night theme based on sun position
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', isAlertMode ? 'alert' : 'default');
-
-    // Automated Morning Briefing Trigger (08:00)
-    const checkTime = () => {
+    function updateTheme() {
       const now = new Date();
-      if (now.getHours() === 8 && now.getMinutes() === 0) {
-        setActiveTab('summary');
-      }
-    };
-    const timer = setInterval(checkTime, 60000);
-    return () => clearInterval(timer);
-  }, [isAlertMode]);
+      const times = SunCalc.getTimes(now, LAT, LON);
+      const isNight = now < times.sunrise || now > times.sunset;
+      const newTheme = isNight ? 'dark' : 'light';
+      setTheme(newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
+    }
+    updateTheme();
+    const interval = setInterval(updateTheme, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Core Data Hook
-  const { news, stocks, weather, f1, loading } = useDashboardData(undefined, undefined, followedStocks);
+  // Swipe to navigate tabs
+  const currentTabIndex = TAB_ROUTES.indexOf(location.pathname);
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: () => {
+      const next = Math.min(currentTabIndex + 1, TAB_ROUTES.length - 1);
+      navigate(TAB_ROUTES[next]);
+    },
+    onSwipedRight: () => {
+      const prev = Math.max(currentTabIndex - 1, 0);
+      navigate(TAB_ROUTES[prev]);
+    },
+    trackMouse: false,
+    delta: 50,
+  });
 
-  const handleAiSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiInput.trim()) return;
-
-    const userMsg = { role: 'user', content: aiInput };
+  const handleAiSend = async (content: string) => {
+    const userMsg = { role: 'user', content };
     setAiMessages(prev => [...prev, userMsg]);
     setAiInput('');
-
-    const response = await getGeminiResponse(userMsg.content, aiMessages);
-    setAiMessages(prev => [...prev, {
-      role: 'assistant',
-      content: response
-    }]);
-  }, [aiInput, aiMessages]);
-
-  const handleAddStock = (symbol: string) => {
-    setFollowedStocks(prev => [...prev, symbol]);
+    try {
+      const response = await callGemini(content, aiMessages);
+      setAiMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch {
+      setAiMessages(prev => [...prev, { role: 'assistant', content: 'Unable to connect to AI. Please try again.' }]);
+    }
   };
 
   return (
-    <div className={cn(
-      "h-screen w-screen flex flex-col bg-background text-zinc-300 font-mono overflow-hidden select-none",
-      isAlertMode && "alert-mode"
-    )}>
-      {/* HEADER SECTION */}
+    <div className="h-screen w-screen flex flex-col bg-[var(--color-background)] text-zinc-300 overflow-hidden">
       <Header
         onAiToggle={() => setIsAiOpen(true)}
-        isAlertMode={isAlertMode}
-        onAlertToggle={() => setIsAlertMode(!isAlertMode)}
-        onSettingsToggle={() => setIsMaintenanceOpen(!isMaintenanceOpen)}
+        onSettingsToggle={() => setIsSettingsOpen(!isSettingsOpen)}
+        theme={theme}
       />
 
-      {/* STRATEGIC NAVIGATION */}
-      <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navigation />
 
-      {/* SYSTEM MAIN GRID */}
-      <main className="flex-1 overflow-hidden relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="h-full"
-          >
-            {loading && activeTab === 'overview' && (
-              <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-12 h-12 border-4 border-primary/20 border-t-primary animate-spin" />
-                  <div className="text-[10px] font-black tracking-[0.5em] text-primary uppercase animate-pulse">Syncing Operational Data...</div>
-                </div>
-              </div>
-            )}
-            {activeTab === 'overview' && (
-              <Overview
-                news={news}
-                stocks={stocks}
-                weather={weather}
-                f1={f1}
-                aiMessages={aiMessages}
-                onAiSubmit={handleAiSubmit}
-                aiInput={aiInput}
-                setAiInput={setAiInput}
-                isAlertMode={isAlertMode}
-              />
-            )}
-            {activeTab === 'intel' && <StrategicIntel news={news} />}
-            {activeTab === 'map' && <MapTab isAlertMode={isAlertMode} />}
-            {activeTab === 'markets' && (
-              <Markets
-                stocks={stocks}
-                followedStocks={followedStocks}
-                onAddStock={handleAddStock}
-              />
-            )}
-            {activeTab === 'f1' && <F1 f1={f1} />}
-            {activeTab === 'habitat' && <Habitat />}
-            {activeTab === 'environmental' && <EnvironmentalIntelligence />}
-            {activeTab === 'news' && <GlobalNews news={news} />}
-            {activeTab === 'summary' && <ExecutiveSummary />}
-          </motion.div>
-        </AnimatePresence>
-
-        {/* Maintenance Overlay (Sneaked at bottom) */}
-        <AnimatePresence>
-          {isMaintenanceOpen && (
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              className="fixed bottom-0 left-0 right-0 h-[60vh] bg-zinc-950 border-t border-primary/40 z-50 overflow-y-auto shadow-[0_-20px_50px_rgba(0,0,0,0.8)] custom-scrollbar"
-            >
-              <div className="absolute top-2 right-4 flex gap-2">
-                <button
-                  onClick={() => setIsMaintenanceOpen(false)}
-                  className="text-[10px] font-black text-zinc-500 hover:text-primary uppercase py-1 px-2 border border-border bg-zinc-900"
-                >
-                  Close System Metrics [ESC]
-                </button>
-              </div>
-              <Maintenance
-                startTime={startTime}
-                followedStocks={followedStocks}
-                onAddStock={handleAddStock}
-                onRemoveStock={(symbol) => setFollowedStocks(prev => prev.filter(s => s !== symbol))}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <main className="flex-1 overflow-hidden relative" {...swipeHandlers}>
+        <div className="h-full overflow-y-auto">
+          <Suspense fallback={<TabLoader />}>
+            <Routes>
+              <Route path="/overview" element={<OverviewTab />} />
+              <Route path="/news" element={<NewsTab />} />
+              <Route path="/stocks" element={<StocksTab />} />
+              <Route path="/intel" element={<IntelTab />} />
+              <Route path="/sports" element={<SportsF1Tab />} />
+              <Route path="/home" element={<HomeTab />} />
+              <Route path="*" element={<Navigate to="/overview" replace />} />
+            </Routes>
+          </Suspense>
+        </div>
       </main>
 
-      {/* FOOTER STATUS BAR */}
       <StatusBar />
 
-      {/* AI SIDEBAR */}
       <AISidebar
         isOpen={isAiOpen}
         onClose={() => setIsAiOpen(false)}
         messages={aiMessages}
-        onSend={async (content) => {
-          const userMsg = { role: 'user', content };
-          setAiMessages(prev => [...prev, userMsg]);
-          setAiInput('');
-
-          try {
-            const response = await getGeminiResponse(content, aiMessages);
-            setAiMessages(prev => [...prev, {
-              role: 'assistant',
-              content: response
-            }]);
-          } catch (e) {
-            setAiMessages(prev => [...prev, {
-              role: 'assistant',
-              content: 'ERROR: TRANSMISSION FAILED. CHECK CONNECTION.'
-            }]);
-          }
-        }}
+        onSend={handleAiSend}
         input={aiInput}
         setInput={setAiInput}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );

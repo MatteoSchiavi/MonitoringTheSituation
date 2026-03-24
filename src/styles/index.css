@@ -2,29 +2,212 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 :root {
   --color-primary: #10b981;
   --color-primary-rgb: 16, 185, 129;
-  --color-alert: #ef4444;
   --color-background: #09090b;
+  --color-surface: #18181b;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-.alert-mode {
-  --color-primary: #ef4444 !important;
-  --color-primary-rgb: 239, 68, 68 !important;
-  --color-alert: #10b981 !important;
+[data-theme="dark"] {
+  --color-primary: #3b82f6;
+  --color-primary-rgb: 59, 130, 246;
+  --color-background: #030712;
+  --color-surface: #111827;
 }
 
 @layer base {
   body {
-    @apply bg-background text-zinc-300 font-mono antialiased overflow-hidden selection:bg-primary selection:text-background transition-colors duration-500;
+    font-family: var(--font-sans);
+    @apply bg-[var(--color-background)] text-zinc-300 antialiased overflow-hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
   }
 
-  * {
-    @apply rounded-none border-border;
+  /* Ensure touch targets */
+  button,
+  a,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
   }
 
+  /* Scrollbar - thin subtle */
   ::-webkit-scrollbar {
-    display: none;
+    width: 4px;
+    height: 4px;
   }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+@layer components {
+  .widget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .widget-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Tab transition */
+  .tab-content {
+    animation: tabFadeIn 0.2s ease-out;
+  }
+
+  @keyframes tabFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Skeleton shimmer */
+  .skeleton-shimmer {
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.03) 25%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.03) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}
+
+/* React Grid Layout styles */
+.react-grid-layout {
+  position: relative;
+}
+
+.react-grid-item {
+  transition: all 200ms ease;
+  transition-property: left, top, width, height;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height;
+}
+
+.react-grid-item.react-draggable-dragging {
+  transition: none;
+  z-index: 100;
+  opacity: 0.9;
+}
+
+.react-grid-placeholder {
+  background: rgba(16, 185, 129, 0.1);
+  border: 2px dashed rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  opacity: 1;
+  transition: all 200ms ease;
+}
+
+.react-resizable-handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  background: none;
+}
+
+.react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+}
+
+/* Markdown Content Styling */
+.markdown-content {
+  @apply text-zinc-300 leading-relaxed;
+}
+
+.markdown-content p {
+  @apply mb-3 last:mb-0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  @apply mb-3 ml-4 list-outside;
+}
+
+.markdown-content ul {
+  @apply list-disc;
+}
+
+.markdown-content ol {
+  @apply list-decimal;
+}
+
+.markdown-content li {
+  @apply mb-1.5 last:mb-0;
+}
+
+.markdown-content strong {
+  @apply font-bold text-zinc-100;
+}
+
+.markdown-content code {
+  @apply bg-zinc-800 px-1.5 py-0.5 rounded text-xs font-mono text-emerald-400;
+}
+
+.markdown-content pre {
+  @apply bg-zinc-800 p-3 rounded-md overflow-x-auto my-3 text-xs leading-normal;
+}
+
+.markdown-content blockquote {
+  @apply border-l-2 border-emerald-500/50 pl-4 my-3 italic text-zinc-400;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  @apply font-bold text-zinc-100 mt-4 mb-2 first:mt-0;
+}
+
+.markdown-content h3 {
+  @apply text-base;
+}
+
+.markdown-content h4 {
+  @apply text-sm;
 }

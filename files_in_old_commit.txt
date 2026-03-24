@@ -1,0 +1,48 @@
+.env.example
+.gitignore
+README.md
+eslint.config.js
+index.html
+package-lock.json
+package.json
+postcss.config.js
+project plan/AI_CODING_PROMPT.md
+project plan/IMPLEMENTATION_GUIDE.md
+project plan/README.md
+project plan/command-center.jsx
+public/vite.svg
+src/App.tsx
+src/components/layout/AISidebar.tsx
+src/components/layout/Header.tsx
+src/components/layout/Navigation.tsx
+src/components/layout/StatusBar.tsx
+src/components/ui/Widget.tsx
+src/components/widgets/AITerminal.tsx
+src/components/widgets/EnvironmentalIntelligence.tsx
+src/components/widgets/ExecutiveSummary.tsx
+src/components/widgets/F1.tsx
+src/components/widgets/GlobalNews.tsx
+src/components/widgets/GlobalStrategicMap.tsx
+src/components/widgets/Habitat.tsx
+src/components/widgets/LogisticsTracker.tsx
+src/components/widgets/Maintenance.tsx
+src/components/widgets/MapTab.tsx
+src/components/widgets/Markets.tsx
+src/components/widgets/Overview.tsx
+src/components/widgets/PizzaIndex.tsx
+src/components/widgets/StrategicIntel.tsx
+src/hooks/useDashboard.ts
+src/hooks/useF1.ts
+src/hooks/useWeather.ts
+src/lib/api.ts
+src/lib/cache.ts
+src/lib/gemini.ts
+src/lib/utils.ts
+src/main.tsx
+src/styles/index.css
+src/types/dashboard.ts
+tailwind.config.js
+tsconfig.app.json
+tsconfig.json
+tsconfig.node.json
+vite.config.ts
